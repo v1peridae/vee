@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+INSTALL_DIR="${HOME}/.local/bin"
 OS=$(uname -s)
 ARCH=$(uname -m)
 case "$ARCH" in
@@ -42,17 +43,17 @@ echo "installing vee ${TAG}... :3"
 
 mkdir -p "$INSTALL_DIR"
 
-curl -sSL "$DOWNLOAD_URL" -o "${HOME}/.local/bin/vee"
-chmod +x "${HOME}/.local/bin/vee"
+curl -sSL "$DOWNLOAD_URL" -o "${INSTALL_DIR}/vee"
+chmod +x "${INSTALL_DIR}/vee"
 
 if [ "$OS" = "Darwin" ]; then
-  xattr -d com.apple.quarantine "${HOME}/.local/bin/vee" 2>/dev/null || true
+  xattr -d com.apple.quarantine "${INSTALL_DIR}/vee" 2>/dev/null || true
 fi
 
 echo ""
-echo "vee has been installed to ${HOME}/.local/bin/vee"
+echo "vee has been installed to ${INSTALL_DIR}/vee"
 
-if echo "$PATH" | grep -q "${HOME}/.local/bin"; then
+if echo "$PATH" | grep -q "${INSTALL_DIR}"; then
   echo ""
   echo "run 'vee --help' to get started!"
   exit 0
@@ -76,5 +77,5 @@ echo "" >> "$SHELL_RC"
 echo "# vee" >> "$SHELL_RC"
 echo "$PATH_LINE" >> "$SHELL_RC"
 echo ""
-echo "added ${HOME}/.local/bin to your PATH in $SHELL_RC"
+echo "added ${INSTALL_DIR} to your PATH in $SHELL_RC"
 echo "run 'source $SHELL_RC' or open a new terminal, then 'vee --help' to get started!"
