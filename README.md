@@ -1,7 +1,7 @@
 # vee
 
 <div align="center">
-  <img src="https://files.catbox.moe/8fj85q.png" alt="vee banner" width="600"/>
+  <img src="https://files.catbox.moe/8fj85q.png" alt="vee banner" width="800"/>
 </div>
 
 a fast rust-based package manager for javascript/node! :3
