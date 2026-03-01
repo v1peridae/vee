@@ -3,6 +3,7 @@
 <div align="center">
   <img src="https://files.catbox.moe/8fj85q.png" alt="vee banner" width="800"/>
 </div>
+<br>
 
 a fast rust-based package manager for javascript/node! :3
 
