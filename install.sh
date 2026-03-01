@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+if [ -z "$HOME" ]; then
+  HOME="$(cd ~ && pwd)"
+fi
 INSTALL_DIR="${HOME}/.local/bin"
 OS=$(uname -s)
 ARCH=$(uname -m)
@@ -41,6 +44,10 @@ fi
 DOWNLOAD_URL="https://github.com/v1peridae/vee/releases/download/${TAG}/${ASSET}"
 echo "installing vee ${TAG}... :3"
 
+if [ -z "$INSTALL_DIR" ]; then
+  echo "error: could not determine the install directory"
+  exit 1
+fi
 mkdir -p "$INSTALL_DIR"
 
 curl -sSL "$DOWNLOAD_URL" -o "${INSTALL_DIR}/vee"

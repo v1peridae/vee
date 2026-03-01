@@ -18,7 +18,6 @@ i made it because i got into an interesting disagreement with my friends (@megha
 ### option 1: install from release (recommended)
 
 ```bash
-cd Downloads
 curl -sSL https://raw.githubusercontent.com/v1peridae/vee/main/install.sh | sh
 ```
 
