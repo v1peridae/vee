@@ -103,7 +103,7 @@ MIT - do whatever you want
 
 ## ai usage disclaimer while coding (it's good to be transparent and honest!)
 
-this was one of my most complex projects and i got some help from claude's sonnet and opus 4.6 especially with testing + fixing a shit load of unompimised code.
+this was one of my most complex projects and i got some help from claude's sonnet and opus 4.6 especially with testing + fixing a shit load of unompimised code and fixing my install.sh code bc it just wouldn't work when i did it :')
 
 ---
 
