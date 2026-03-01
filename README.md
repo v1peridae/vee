@@ -15,6 +15,14 @@ i made it because i got into an interesting disagreement with my friends (@megha
 
 ## installation (macos + linux)
 
+### option 1: install from release (recommended)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/v1peridae/vee/main/install.sh | sh
+```
+
+### option 2: build from source!
+
 ```bash
 git clone https://github.com/v1peridae/vee
 cargo install --path vee/vee
