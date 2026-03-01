@@ -1,8 +1,9 @@
 # reproduce my results
 
 <div align="center">
-  <img src="https://files.catbox.moe/8fj85q.png" alt="vee banner" width="600"/>
+  <img src="https://files.catbox.moe/8fj85q.png" alt="vee banner" width="800"/>
 </div>
+<br>
 
 specs these were run on: macOS 15.7.3 / apple m4 / 16gb ram
 
