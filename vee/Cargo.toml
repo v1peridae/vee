@@ -1,0 +1,31 @@
+[package]
+name = "vee"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+base64 = "0.22.1"
+clap = { version = "4.4", features = ["derive"] }
+flate2 = "1.1"
+hex = "0.4.3"
+pathdiff = "0.2.3"
+rayon = "1.10"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "stream", "http2", "gzip", "brotli", "deflate"] }
+semver = "1.0.27"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha1 = "0.10.6"
+sha2 = "0.10.9"
+tar = "0.4"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util"] }
+console = "0.16"
+indicatif = "0.18"
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = 'abort'
