@@ -47,8 +47,7 @@ fn record_dep(
     result_key: &str,
 ) {
     match requester_key {
-        Some(result_key) => {
-            if let Some(package) = result.get_mut(result_key) {
+        Some(requester_key) => {if let Some(package) = result.get_mut(requester_key) {
                 package.resolved_deps.insert(dep_name.to_string(), result_key.to_string());
             }
         }

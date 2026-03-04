@@ -1,5 +1,5 @@
 pub mod integrity;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use integrity::Integrity;
 use std::path::PathBuf;
@@ -60,7 +60,7 @@ impl CacheStore {
         let tmp_for_task = temp_dest.clone();
         tokio::task::spawn_blocking(move || -> Result<()> {let gz = GzDecoder::new(std::io::Cursor::new(bytes));
             let mut archive = tar::Archive::new(gz);
-            archive.set_overwrite(false);
+            archive.set_overwrite(true);
             for entry in archive.entries()? {
                 let mut entry = entry?;
                 let entry_type = entry.header().entry_type();
@@ -83,9 +83,14 @@ impl CacheStore {
                     continue;
                 }
                 if let Some(parent) = full.parent() {
+                    if parent.exists() {
+                        let meta = std::fs::metadata(parent)?;
+                        if meta.is_file() {std::fs::remove_file(parent)?;}
+                    }
                     std::fs::create_dir_all(parent)?;
                 }
-                entry.unpack(&full)?;
+                if full.exists() {let _ = std::fs::remove_file(&full);}
+                entry.unpack(&full).with_context(|| {format!("extract {} to {}", path.display(),full.display())})?;
             }
             Ok(())
         }).await??;

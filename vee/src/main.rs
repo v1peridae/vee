@@ -114,8 +114,25 @@ struct InstallOptions {
     simulate: bool,
 }
 
+fn create_package_json() -> Result<(), Box<dyn std::error::Error>> {
+    let current_dir = std::env::current_dir()?;
+    let package_path = current_dir.join("package.json");
+    if package_path.exists() {return Ok(());}
+    let dir_name = current_dir.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "my-package".to_string());
+    let mut package = serde_json::Map::new();
+    package.insert("name".into(), serde_json::Value::String(dir_name));
+    package.insert("version".into(), serde_json::Value::String("1.0.0".to_string()));
+    package.insert("main".into(), serde_json::Value::String("index.js".to_string()));
+    package.insert("scripts".into(), serde_json::json!({"test": "echo \"Error: no test specified\" && exit 1"}));
+    package.insert("license".into(), serde_json::Value::String("ISC".to_string()));
+    let json = serde_json::to_string_pretty(&package)?;
+    std::fs::write(&package_path, format!("{}\n", json))?;
+    ui::success(&format!("created {}", package_path.display()));
+    Ok(())
+}
 async fn handle_install(opts: &InstallOptions) -> Result<(), Box<dyn std::error::Error>> {
     let started = Instant::now();
+    create_package_json()?;
     let package = package_json::PackageJson::load(std::path::Path::new("."))?;
     let project_dir = package.directory().to_path_buf();
     let registry = registry::npm::NpmRegistry::from_project_dir(&project_dir)?;
@@ -255,6 +272,7 @@ async fn handle_add(
     verbose: bool,
     simulate: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    create_package_json()?;
     let mut package = package_json::PackageJson::load(std::path::Path::new("."))?;
     let project_dir = package.directory().to_path_buf();
     let registry = registry::npm::NpmRegistry::from_project_dir(&project_dir)?;
