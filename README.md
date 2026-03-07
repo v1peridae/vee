@@ -1,7 +1,7 @@
 # vee
 
 <div align="center">
-  <img src="https://files.catbox.moe/8fj85q.png" alt="vee banner" width="800"/>
+  <img src="https://files.catbox.moe/9t711w.png" alt="vee banner" width="800"/>
 </div>
 <br>
 
@@ -91,6 +91,7 @@ vee works with your `package.json`, uses the npm registry (and mirrors) + produc
 
 - windows support </3
 - workspaces - monorepo support is on the list
+- more commands!
 - probably some more stuff?? we'll see!
 
 ---

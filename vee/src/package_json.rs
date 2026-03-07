@@ -89,6 +89,8 @@ pub struct ScriptsManifest {
     pub version: Option<String>,
     #[serde(default)]
     pub scripts: BTreeMap<String, String>,
+    #[serde(default)]
+    pub main: Option<String>,
     #[serde(skip)]
     directory: PathBuf,
 }

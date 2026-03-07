@@ -25,11 +25,15 @@ struct Cli {
     command: Commands,
 }
 
+const SUBCOMMANDS: &[&str] = &[ 
+    "install", "i", "add", "remove", "update", "list", "ls", "run", 
+    "create", "exec", "dlx", "init", "outdated", "cache", "clean", "info",
+];
+
 #[derive(Subcommand)]
 enum Commands {
     #[command(alias = "i")]
     Install {
-        package: Option<String>,
         #[arg(short = 'P', long)]
         production: bool,
         #[arg(long)]
@@ -86,6 +90,19 @@ enum Commands {
 #[derive(Subcommand)]
 enum CacheAction {Clean, Info}
  
+fn run_args(args: Vec<String>) -> Vec<String> {
+    let mut iter = args.iter().skip(1);
+    while let Some(arg) = iter.next() {
+        if arg.starts_with('-') {continue;}
+        if SUBCOMMANDS.contains(&arg.as_str()) {break;}
+        let mut result = args.clone();
+        if let Some(index) = result.iter().position(|a| a == arg) {
+            result.insert(index, "run".to_string());
+        }
+        return result;
+    }
+    args
+}
 
 fn format_duration(duration: std::time::Duration) -> String {
     let ms = duration.as_millis();
@@ -95,7 +112,8 @@ fn plural_package(n: usize) -> &'static str {if n == 1 {"package"} else {"packag
 
 #[tokio::main]
 async fn main() {
-    let cli = Cli::parse();
+    let args = std::env::args().collect::<Vec<_>>();
+    let cli = Cli::parse_from(run_args(args));
     if let Err(error) = run(cli).await {
         let msg = format!("{:#}", error);
         if !msg.contains("broken pipe") {
@@ -132,7 +150,8 @@ fn create_package_json() -> Result<(), Box<dyn std::error::Error>> {
 }
 async fn handle_install(opts: &InstallOptions) -> Result<(), Box<dyn std::error::Error>> {
     let started = Instant::now();
-    create_package_json()?;
+let package_path = std::env::current_dir()?.join("package.json");
+if !package_path.exists() {handle_init(false)?;}
     let package = package_json::PackageJson::load(std::path::Path::new("."))?;
     let project_dir = package.directory().to_path_buf();
     let registry = registry::npm::NpmRegistry::from_project_dir(&project_dir)?;
@@ -319,28 +338,6 @@ fn handle_run(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let manifest = package_json::ScriptsManifest::load(std::path::Path::new("."))?;
     let project_dir = manifest.directory().to_path_buf();
-    let script_cmd = manifest.scripts.get(&script).ok_or_else(|| {
-        let available: Vec<&String> = manifest.scripts.keys().collect();
-        if available.is_empty() {
-            anyhow::anyhow!("no scripts defined in package.json")
-        } else {
-            anyhow::anyhow!(
-                "script '{}' not found. available: {}",
-                script,
-                available.iter().map(|name| name.as_str()).collect::<Vec<_>>().join(", ")
-            )
-        }
-    })?;
-
-    let full_cmd = if args.is_empty() {
-        script_cmd.clone()
-    } else {
-        let escaped: Vec<String> = args.iter().map(|arg| {
-            format!("'{}'", arg.replace('\'', "'\\''"))
-        }).collect();
-        format!("{} {}", script_cmd, escaped.join(" "))
-    };
-
     let bin_dir = project_dir.join("node_modules").join(".bin");
     let current_path = env!("PATH");
     let new_path = format!("{}:{}", bin_dir.display(), current_path);
@@ -348,6 +345,7 @@ fn handle_run(
     let package_version = manifest.version.as_deref().unwrap_or("");
     let vee_execpath = std::env::current_exe().map(|path| path.to_string_lossy().to_string()).unwrap_or_default();
     let user_agent = format!("vee/{}", env!("CARGO_PKG_VERSION"));
+    let main_entry = manifest.main.clone().unwrap_or_else(|| "index.js".to_string());
     let make_cmd = |cmd_str: &str, lifecycle_event: &str| -> std::process::Command {
         let mut cmd = std::process::Command::new("sh");
         cmd.arg("-c").arg(cmd_str)
@@ -363,41 +361,71 @@ fn handle_run(
             .stderr(std::process::Stdio::inherit());
         cmd
     };
-
-    let pre_key = format!("pre{}", script);
-    let post_key = format!("post{}", script);
-    let pre_cmd = manifest.scripts.get(&pre_key).cloned();
-    let post_cmd = manifest.scripts.get(&post_key).cloned();
-    if let Some(ref pre) = pre_cmd {
+    let run_node_file = |file: &str, node_args: &[String], watch: bool| -> Result<(), Box<dyn std::error::Error>> {
+        let mut cmd = std::process::Command::new("node");
+        if watch {cmd.arg("--watch");}
+        cmd.arg(file).args(node_args)
+            .current_dir(&project_dir)
+            .env("PATH", &new_path)
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit());
         if verbose {
-            ui::info(&format!("running '{}': {}", pre_key, pre));
+            let watch_flag = if watch { " --watch" } else { "" };
+            ui::info(&format!("running: node{} {} {}", watch_flag, file, node_args.join(" ")));
         }
-        let status = make_cmd(pre, &pre_key)
-            .status()
-            .map_err(|error| anyhow::anyhow!("failed to execute '{}': {}", pre_key, error))?;
-        if !status.success() {
-            std::process::exit(status.code().unwrap_or(1));
+        exec_or_spawn(&mut cmd)
+    };
+
+    if let Some(script_cmd) = manifest.scripts.get(&script) {
+        let full_cmd = if args.is_empty() {
+            script_cmd.clone()
+        } else {let escaped: Vec<String> = args.iter().map(|arg| {format!("'{}'", arg.replace('\'', "'\\''"))}).collect();
+            format!("{} {}", script_cmd, escaped.join(" "))
+        };
+
+        let pre_key = format!("pre{}", script);
+        let post_key = format!("post{}", script);
+        let pre_cmd = manifest.scripts.get(&pre_key).cloned();
+        let post_cmd = manifest.scripts.get(&post_key).cloned();
+        if let Some(ref pre) = pre_cmd {
+            if verbose {ui::info(&format!("running '{}': {}", pre_key, pre));}
+            let status = make_cmd(pre, &pre_key)
+                .status()
+                .map_err(|error| anyhow::anyhow!("failed to execute '{}': {}", pre_key, error))?;
+            if !status.success() {std::process::exit(status.code().unwrap_or(1));}
         }
-    }
 
     if verbose {ui::info(&format!("running '{}': {}", script, full_cmd));}
 
-    if let Some(ref post) = post_cmd {
-        let status = make_cmd(&full_cmd, &script)
-            .status()
-            .map_err(|error| anyhow::anyhow!("failed to execute '{}': {}", script, error))?;
-        if !status.success() {
-            std::process::exit(status.code().unwrap_or(1));
-        }
-        if verbose {
-            ui::info(&format!("running '{}': {}", post_key, post));
-        }
-        exec_or_spawn(&mut make_cmd(post, &post_key))?;
-    } else {
-        exec_or_spawn(&mut make_cmd(&full_cmd, &script))?;
-    }
+        if let Some(ref post) = post_cmd {
+            let status = make_cmd(&full_cmd, &script)
+                .status()
+                .map_err(|error| anyhow::anyhow!("failed to execute '{}': {}", script, error))?;
+            if !status.success() {
+                std::process::exit(status.code().unwrap_or(1));
+            }
+            if verbose {ui::info(&format!("running '{}': {}", post_key, post));
+            exec_or_spawn(&mut make_cmd(post, &post_key))?;}
+        }else {exec_or_spawn(&mut make_cmd(&full_cmd, &script))?;}
+        return Ok(());}
+    let file_path = project_dir.join(&script);
+    let is_js_file = script.ends_with(".js") || script.ends_with(".mjs") || script.ends_with(".cjs");
+    if is_js_file || file_path.exists() {return run_node_file(&script, &args, false);}
 
-    Ok(())
+
+
+    if script == "dev" {return run_node_file(&main_entry, &args, true);}
+    if script == "prod" || script == "start" {return run_node_file(&main_entry, &args, false);}
+    let available: Vec<&String> = manifest.scripts.keys().collect();
+    if available.is_empty() {
+        Err(anyhow::anyhow!("script '{}' not found. try running `vee run dev` or `vee run index.js` to run without defining scripts :)",script).into())}
+    else {
+        Err(anyhow::anyhow!(
+            "script '{}' not found. available: {}",script,
+            available.iter().map(|name| name.as_str()).collect::<Vec<_>>().join(", ")
+        ).into())
+    }
 }
 
 #[cfg(unix)]
@@ -1054,19 +1082,15 @@ fn run_exec_bin(
 
 async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
-        Commands::Install { package, production, frozen_lockfile, ignore_scripts } => {
-            if let Some(package_spec) = package {
-                handle_add(vec![package_spec], false, None, cli.verbose, cli.simulate).await?;
-            } else {
-                let opts = InstallOptions {
-                    production,
-                    frozen_lockfile,
-                    ignore_scripts,
-                    verbose: cli.verbose,
-                    simulate: cli.simulate,
-                };
-                handle_install(&opts).await?;
-            }
+        Commands::Install { production, frozen_lockfile, ignore_scripts } => {
+            let opts = InstallOptions {
+                production,
+                frozen_lockfile,
+                ignore_scripts,
+                verbose: cli.verbose,
+                simulate: cli.simulate,
+            };
+            handle_install(&opts).await?;
         }
         Commands::Add { packages, dev, version } => {
             handle_add(packages, dev, version, cli.verbose, cli.simulate).await?;
