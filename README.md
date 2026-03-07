@@ -44,13 +44,20 @@ vee init -y && vee add react
 vee install                 # install deps (you can also use: vee i)
 vee add [package]           # add a package
 vee add -D [package]        # add a dev dependency
+vee add [package]@[version] # add a specific version (or use --version)
 vee remove [package]        # remove a package
+vee update [packages]       # update deps
 vee run [script]            # run a script from package.json
+vee [script]                # short for vee run
 vee init                    # scaffold a new project
+vee create [package] [args] # create a project from a template (vee create vite my-app)
 vee exec [package] [args]   # run a package w/o installing (you can also use: vee dlx)
 vee list --tree             # show the dependency tree
+vee list --prod             # list production deps only
+vee list --dev              # list dev deps only
 vee outdated                # check for outdated packages
 vee cache clean             # clear the cache
+vee cache info              # show cache size and location
 ```
 
 ---
@@ -84,15 +91,6 @@ wanna reproduce this? check out TESTS.md
 ## compatibility
 
 vee works with your `package.json`, uses the npm registry (and mirrors) + produces a `node_modules` layout with symlinks that node will understand. so your existing vite, next or whatever should work (˶ᵔ ᵕ ᵔ˶)
-
----
-
-## to do list
-
-- windows support </3
-- workspaces - monorepo support is on the list
-- more commands!
-- probably some more stuff?? we'll see!
 
 ---
 
