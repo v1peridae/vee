@@ -30,10 +30,13 @@ cargo install --path vee/vee
 
 ---
 
-## quick start
+## quick start example
 
 ```bash
-vee init -y && vee add react
+vee create vite my-app
+cd my-app
+vee install
+vee run dev
 ```
 
 ---
@@ -41,23 +44,44 @@ vee init -y && vee add react
 ## usage
 
 ```bash
-vee install                 # install deps (you can also use: vee i)
-vee add [package]           # add a package
-vee add -D [package]        # add a dev dependency
-vee add [package]@[version] # add a specific version (or use --version)
-vee remove [package]        # remove a package
-vee update [packages]       # update deps
-vee run [script]            # run a script from package.json
-vee [script]                # short for vee run
-vee init                    # scaffold a new project
-vee create [package] [args] # create a project from a template (vee create vite my-app)
-vee exec [package] [args]   # run a package w/o installing (you can also use: vee dlx)
-vee list --tree             # show the dependency tree
-vee list --prod             # list production deps only
-vee list --dev              # list dev deps only
-vee outdated                # check for outdated packages
-vee cache clean             # clear the cache
-vee cache info              # show cache size and location
+# global flags
+vee -v, --verbose             # verbose logs
+vee -S, --simulate            # prints what it would do
+
+# project + dependencies
+vee install                   # install dependencies (alias - vee i)
+vee install -P, --production  # install production dependencies only
+vee install --frozen-lockfile # error if vee.lock missing/outdated
+vee install --ignore-scripts  # skip package lifecycle scripts
+
+vee add <pkg>                 # add dependency
+vee add -D, --dev <pkg>       # add dev dependency
+vee add <pkg>@<version>       # pin version (supported way)
+
+vee remove <pkg>              # remove dependency
+vee update [pkgs...]          # update all dependencies, or only named ones
+
+# scripts / running
+vee run <script> [-- args...] # run a package.json script
+vee <script> [-- args...]     # shorthand for `vee run <script>`
+vee run <file.js> [-- args...]# run a JS file directly (if it exists)
+
+# scaffolding
+vee init [-y, --yes]          # create package.json
+vee create <name> [args...]   # runs create-<name> (supports <name>@<ver> too)
+
+# one-off executables
+vee exec <pkg> [args...]      # run a package binary without installing (alias - vee dlx)
+vee exec <pkg>@<ver> [args...]# versioned exec
+
+# inspection
+vee list [--prod] [--dev]     # list direct dependencies (alias - vee ls)
+vee list --tree               # show dependency tree
+vee outdated                  # show outdated dependencies
+
+# cache
+vee cache clean               # clear ~/.vee cache
+vee cache info                # show cache size + location
 ```
 
 ---
@@ -65,7 +89,7 @@ vee cache info              # show cache size and location
 ## what do you mean fast???
 
 specs: macOS 15.7.3 / apple m4 / 16gb ram  
-versions: vee 0.1.0, bun 1.2.19, pnpm 10.30.3, npm 11.5.1  
+versions: vee 0.1.1, bun 1.2.19, pnpm 10.30.3, npm 11.5.1  
 110 packages (see TESTS.md)
 
 note:tests 1 + 2 depend on your network speed so they may vary
@@ -90,7 +114,7 @@ wanna reproduce this? check out TESTS.md
 
 ## compatibility
 
-vee works with your `package.json`, uses the npm registry (and mirrors) + produces a `node_modules` layout with symlinks that node will understand. so your existing vite, next or whatever should work (˶ᵔ ᵕ ᵔ˶)
+vee works with your `package.json`, uses the npm registry (configurable via `.npmrc`) + produces a `node_modules` layout with symlinks that node will understand. so your existing vite, next or whatever should work (˶ᵔ ᵕ ᵔ˶)
 
 ---
 
